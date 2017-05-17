@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>575</width>
-    <height>387</height>
+    <width>655</width>
+    <height>417</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,8 +19,8 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>571</width>
-      <height>331</height>
+      <width>651</width>
+      <height>351</height>
      </rect>
     </property>
     <property name="currentIndex">
@@ -33,8 +33,8 @@
      <widget class="QPushButton" name="buttonTest">
       <property name="geometry">
        <rect>
-        <x>470</x>
-        <y>40</y>
+        <x>560</x>
+        <y>50</y>
         <width>80</width>
         <height>22</height>
        </rect>
@@ -91,8 +91,8 @@
      <widget class="QPushButton" name="Buttonconnect">
       <property name="geometry">
        <rect>
-        <x>470</x>
-        <y>10</y>
+        <x>560</x>
+        <y>20</y>
         <width>80</width>
         <height>22</height>
        </rect>
@@ -360,25 +360,6 @@
        <string>8 bits</string>
       </property>
      </widget>
-     <widget class="QComboBox" name="comboBox">
-      <property name="geometry">
-       <rect>
-        <x>190</x>
-        <y>30</y>
-        <width>79</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <property name="editable">
-       <bool>false</bool>
-      </property>
-      <property name="currentText">
-       <string/>
-      </property>
-      <property name="modelColumn">
-       <number>4</number>
-      </property>
-     </widget>
      <widget class="QPushButton" name="pushButton_SAMSetPos8">
       <property name="geometry">
        <rect>
@@ -509,6 +490,32 @@
       </property>
       <property name="maximum">
        <number>255</number>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_SAMAllGetPos8">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>20</y>
+        <width>101</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Get All Pos8</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="pushButton_SAMGetAllPos12">
+      <property name="geometry">
+       <rect>
+        <x>190</x>
+        <y>50</y>
+        <width>101</width>
+        <height>22</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Get All Pos12</string>
       </property>
      </widget>
     </widget>
@@ -683,7 +690,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>575</width>
+     <width>655</width>
      <height>19</height>
     </rect>
    </property>

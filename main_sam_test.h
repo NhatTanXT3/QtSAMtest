@@ -24,6 +24,9 @@ public:
     void getPID(quint8 ID);
     void setPID(quint8 ID,quint8 Pvalue,quint8 Ivalue,quint8 Dvalue);
 
+    void getAllPos12();
+    void getAllPos8Torq8();
+
 
 private:
     Ui::Main_SAM_test *ui;
@@ -44,6 +47,8 @@ private slots:
     void on_pushButton_2_clicked();
     void on_pushButton_SAMGetPID_clicked();
     void on_pushButton_SAMSetPID_clicked();
+    void on_pushButton_SAMAllGetPos8_clicked();
+    void on_pushButton_SAMGetAllPos12_clicked();
 };
 
 #endif // MAIN_SAM_TEST_H

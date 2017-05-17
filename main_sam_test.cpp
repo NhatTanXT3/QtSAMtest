@@ -136,6 +136,27 @@ void Main_SAM_test::setPID(quint8 ID, quint8 Pvalue, quint8 Ivalue, quint8 Dvalu
     subCon->serialSend(ba);
 }
 
+void Main_SAM_test::getAllPos12()
+{
+    QByteArray ba;
+    ba.resize(3);
+    ba[0] = 0xff;
+    ba[1] = 0xcc;
+    ba[2] =0xfe;
+    subCon->serialSend(ba);
+}
+
+void Main_SAM_test::getAllPos8Torq8()
+{
+
+    QByteArray ba;
+    ba.resize(3);
+    ba[0] = 0xff;
+    ba[1] = 0xec;
+    ba[2] =0xfe;
+    subCon->serialSend(ba);
+}
+
 void Main_SAM_test::taskUpdate()
 {
     //qDebug()<<"timer task";
@@ -207,12 +228,55 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             quint8 Pvalue=myData.at(4)+((myData.at(3)<<5)&0x80);
             quint8 Ivalue=myData.at(5)+((myData.at(3)<<6)&0x80);
             quint8 Dvalue=myData.at(6)+((myData.at(3)<<7)&0x80);
-             qDebug()<<"PID get" << Pvalue <<Ivalue <<Dvalue;
-             QString a;
-             ui->label_SAMP->setText(a.setNum(Pvalue));
-             ui->label_SAMI->setText(a.setNum(Ivalue));
-             ui->label_SAMD->setText(a.setNum(Dvalue));
+            qDebug()<<"PID get" << Pvalue <<Ivalue <<Dvalue;
+            QString a;
+            ui->label_SAMP->setText(a.setNum(Pvalue));
+            ui->label_SAMI->setText(a.setNum(Ivalue));
+            ui->label_SAMD->setText(a.setNum(Dvalue));
 
+        }
+        else if((quint8)myData.at(1)==0xcc)
+        {
+            quint16 samPos12[24];
+            quint8 NumofSam=(myData.size()-3)/4;
+            qDebug()<<"all Pos12"<<NumofSam;
+            for (unsigned char i=0;i<NumofSam;i++)
+            {
+                //                samPos12[bitand(bytes[(i-1)*4+3],31)+1]=bitand[bytes((i-1)*4+5),127)+bitshift(bitand(bytes((i-1)*4+4),31),7);
+                if(myData.at(i*4+5)==((myData.at(i*4+2)^myData.at(i*4+3)^myData.at(i*4+4))&0x7F))
+                    samPos12[myData.at(i*4+2)&0x1F]=(myData.at(i*4+4)&0x7F)+((myData.at(i*4+3)&0x1F)<<7);
+                else
+                    qDebug()<<"error checksum 1";
+
+            }
+            qDebug()<<"all Pos12"<<samPos12[0]<<samPos12[1]<<samPos12[2]<<samPos12[3]<<samPos12[4]
+                   <<samPos12[5]<<samPos12[6]<<samPos12[7]<<samPos12[8]<<samPos12[9];
+        }
+        else if((quint8)myData.at(1)==0xec)
+        {
+            quint8 samPos8[24];
+            quint8 samLoad8[24];
+            quint8 NumofSam=(myData.size()-3)/4;
+            qDebug()<<"all Pos12"<<NumofSam;
+            for (unsigned char i=0;i<NumofSam;i++)
+            {
+                //                samPos12[bitand(bytes[(i-1)*4+3],31)+1]=bitand[bytes((i-1)*4+5),127)+bitshift(bitand(bytes((i-1)*4+4),31),7);
+                if(myData.at(i*4+5)==((myData.at(i*4+2)^myData.at(i*4+3)^myData.at(i*4+4))&0x7F))
+                {
+//                    samPos12[myData.at(i*4+2)&0x1F]=(myData.at(i*4+4)&0x7F)+((myData.at(i*4+3)&0x1F)<<7);
+//                    samLoad8(bitand(bytes((i-1)*4+3),31)+1)=bitand(bytes((i-1)*4+4),127)+bitshift(bitand(bytes((i-1)*4+3),64),1);
+//                    samPos8(bitand(bytes((i-1)*4+3),31)+1)=bitand(bytes((i-1)*4+5),127)+bitshift(bitand(bytes((i-1)*4+3),32),2);
+                    samLoad8[myData.at(i*4+2)&0x1F]=(myData.at(i*4+3)&0x7F)+((myData.at(i*4+2)<<1)&0x80);
+                    samPos8[myData.at(i*4+2)&0x1F]=(myData.at(i*4+4)&0x7F)+((myData.at(i*4+2)<<2)&0x80);
+                }
+                else
+                    qDebug()<<"error checksum 2";
+
+            }
+            qDebug()<<"all Pos8"<<samPos8[0]<<samPos8[1]<<samPos8[2]<<samPos8[3]<<samPos8[4]
+                   <<samPos8[5]<<samPos8[6]<<samPos8[7]<<samPos8[8]<<samPos8[9];
+            qDebug()<<"all Load8"<<samLoad8[0]<<samLoad8[1]<<samLoad8[2]<<samLoad8[3]<<samLoad8[4]
+                              <<samLoad8[5]<<samLoad8[6]<<samLoad8[7]<<samLoad8[8]<<samLoad8[9];
         }
     }
     else{//standard function return
@@ -261,7 +325,7 @@ void Main_SAM_test::on_pushButton_SAMSetPos_clicked()
 {
 
     setSamPos12(ui->spinBox_SAMID->value(),ui->spinBox_SAMSetPos->value());
-    qDebug()<<"set pos 12"<<ui->spinBox_SAMID->value()<<ui->spinBox_SAMSetPos->value();
+    qDebug()<<"set pos12"<<ui->spinBox_SAMID->value()<<ui->spinBox_SAMSetPos->value();
 }
 
 void Main_SAM_test::on_pushButton_SAMSetPos8_clicked()
@@ -292,4 +356,14 @@ void Main_SAM_test::on_pushButton_SAMSetPID_clicked()
 {
     setPID(ui->spinBox_SAMID->value(),ui->spinBox_SAMP->value(),ui->spinBox_SAMI->value(),ui->spinBox_SAMD->value());
     qDebug()<<"set PID"<<ui->spinBox_SAMP->value()<< ui->spinBox_SAMI->value()<< ui->spinBox_SAMD->value();
+}
+
+void Main_SAM_test::on_pushButton_SAMAllGetPos8_clicked()
+{
+    getAllPos8Torq8();
+}
+
+void Main_SAM_test::on_pushButton_SAMGetAllPos12_clicked()
+{
+    getAllPos12();
 }
