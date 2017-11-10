@@ -30,6 +30,7 @@ public:
     void setPDQuick(quint8 ID,quint8 Pvalue,quint8 Dvalue);
 
     void getAllPos12();
+    void getAllPos12Full();
     void getAllPos8Torq8();
     void setAllPassive();
     void SAM_Power_enable(quint8 state);
@@ -38,6 +39,7 @@ public:
     void getAllAverageTorque();
 
     void setAllPDQuick(quint8 *Pvalue,quint8 *Dvalue,quint8 numOfSam);
+     void setAllPIDQuick(quint8 *Pvalue,quint8 *Dvalue,quint8 *Ivalue,quint8 numOfSam);
     void getAllPDQuick();
 
 private:
@@ -78,6 +80,10 @@ private slots:
     void on_pushButton_getAvergTorq_clicked();
     void on_pushButton_setPDquickAll_clicked();
     void on_pushButton_getPDQuickAll_clicked();
+    void on_pushButton_SetSAMs8_clicked();
+    void on_pushButton_SAMGetAllPos12_Full_clicked();
+    void on_pushButton_setPDquickAll_2_clicked();
+    void on_pushButton_setPDIquickAll_clicked();
 };
 
 #endif // MAIN_SAM_TEST_H

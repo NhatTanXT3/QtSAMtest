@@ -14,9 +14,11 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         main_sam_test.cpp \
-    myserialport.cpp
+    myserialport.cpp \
+    sam.cpp
 
 HEADERS  += main_sam_test.h \
-    myserialport.h
+    myserialport.h \
+    sam.h
 
 FORMS    += main_sam_test.ui

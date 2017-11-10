@@ -13,6 +13,7 @@ Main_SAM_test::Main_SAM_test(QWidget *parent) :
     ui(new Ui::Main_SAM_test)
 {
     ui->setupUi(this);
+
     connect(ui->Buttonconnect,SIGNAL(clicked(bool)),this,SLOT(connectButton_clicked()));
     connect(ui->buttonTest,SIGNAL(clicked(bool)),this,SLOT(testButton_clicked()));
     connect(ui->dialPos,SIGNAL(valueChanged(int)),this,SLOT(dialPos_valueChanged()));
@@ -188,6 +189,16 @@ void Main_SAM_test::getAllPos12()
     subCon->serialSend(ba);
 }
 
+void Main_SAM_test::getAllPos12Full()
+{
+    QByteArray ba;
+    ba.resize(3);
+    ba[0] = 0xff;
+    ba[1] = 0x99;
+    ba[2] =0xfe;
+    subCon->serialSend(ba);
+}
+
 void Main_SAM_test::getAllPos8Torq8()
 {
 
@@ -227,7 +238,7 @@ void Main_SAM_test::SAM_Power_enable(quint8 state)
 void Main_SAM_test::setAllPos12(quint16 *Pos, quint8 numOfSam)
 {
     QByteArray ba;
-    ba.resize(numOfSam+3);
+    ba.resize(numOfSam*4+3);
     ba[0] = 0xff;
     ba[1] = 0xf0;
 
@@ -239,7 +250,8 @@ void Main_SAM_test::setAllPos12(quint16 *Pos, quint8 numOfSam)
             ba[refIndex++]=i;//id
             ba[refIndex++]=(*(Pos+i)>>7)&0x7F;
             ba[refIndex++]=*(Pos+i)&0x7F;
-            ba[refIndex++]=(ba.at(refIndex-3)^ba.at(refIndex-2)^ba.at(refIndex-1))&0x7F;
+            ba[refIndex]=(ba.at(refIndex-3)^ba.at(refIndex-2)^ba.at(refIndex-1))&0x7F;
+            refIndex++;
         }
     }
     ba[refIndex] =0xfe;
@@ -257,12 +269,13 @@ void Main_SAM_test::setAllAverageTorque(quint16 *Atorq, quint8 numOfSam)
     quint8 refIndex=2;
     for(quint8 i=0; i<numOfSam;i++)
     {
-        if(*(Atorq+i)<4000)
+        if(*(Atorq+i)<4001)
         {
             ba[refIndex++]=i;//id
             ba[refIndex++]=(*(Atorq+i)>>7)&0x7F;
             ba[refIndex++]=*(Atorq+i)&0x7F;
-            ba[refIndex++]=(ba.at(refIndex-3)^ba.at(refIndex-2)^ba.at(refIndex-1))&0x7F;
+            ba[refIndex]=(ba.at(refIndex-3)^ba.at(refIndex-2)^ba.at(refIndex-1))&0x7F;
+            refIndex++;
         }
     }
     ba[refIndex] =0xfe;
@@ -282,7 +295,7 @@ void Main_SAM_test::getAllAverageTorque()
 void Main_SAM_test::setAllPDQuick(quint8 *Pvalue, quint8 *Dvalue, quint8 numOfSam)
 {
     QByteArray ba;
-    ba.resize(numOfSam+3);
+    ba.resize(numOfSam*4+3);
     ba[0] = 0xff;
     ba[1] = 0xc1;
 
@@ -293,8 +306,30 @@ void Main_SAM_test::setAllPDQuick(quint8 *Pvalue, quint8 *Dvalue, quint8 numOfSa
         ba[refIndex++]=(i&0x1F)+(((*(Pvalue+i))&0x80)>>1)+(((*(Dvalue+i))&0x80)>>2);//id
         ba[refIndex++]=(*(Pvalue+i))&0x7F;
         ba[refIndex++]=(*(Dvalue+i))&0x7F;
-        ba[refIndex++]=(ba.at(refIndex-3)^ba.at(refIndex-2)^ba.at(refIndex-1))&0x7F;
+        ba[refIndex]=(ba.at(refIndex-3)^ba.at(refIndex-2)^ba.at(refIndex-1))&0x7F;
+        refIndex++;
+    }
+    ba[refIndex] =0xfe;
+    subCon->serialSend(ba);
+}
 
+void Main_SAM_test::setAllPIDQuick(quint8 *Pvalue, quint8 *Dvalue, quint8 *Ivalue, quint8 numOfSam)
+{
+    QByteArray ba;
+    ba.resize(numOfSam*5+3);
+    ba[0] = 0xff;
+    ba[1] = 0xc2;
+
+    quint8 refIndex=2;
+    for(quint8 i=0; i<numOfSam;i++)
+    {
+
+        ba[refIndex++]=(i&0x1F)+(((*(Pvalue+i))&0x80)>>1)+(((*(Dvalue+i))&0x80)>>2);//id
+        ba[refIndex++]=(*(Pvalue+i))&0x7F;
+        ba[refIndex++]=(*(Dvalue+i))&0x7F;
+        ba[refIndex++]=(*(Ivalue+i))&0x7F;
+        ba[refIndex]=(ba.at(refIndex-4)^ba.at(refIndex-3)^ba.at(refIndex-2)^ba.at(refIndex-1))&0x7F;
+        refIndex++;
     }
     ba[refIndex] =0xfe;
     subCon->serialSend(ba);
@@ -459,11 +494,44 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             //            qDebug()<<"all Pos12"<<samPos12[0]<<samPos12[1]<<samPos12[2]<<samPos12[3]<<samPos12[4]
             //                   <<samPos12[5]<<samPos12[6]<<samPos12[7]<<samPos12[8]<<samPos12[9]<<samPos12[10]<<samPos12[11]<<samPos12[22];
         }
+        else if((quint8)myData.at(1)==0x99)
+        {
+            quint16 samPos12[30];
+            quint8 samAvail[30]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+            quint8 NumofSam=(myData.size()-3)/4;
+            qDebug()<<"Num of Sam"<<NumofSam;
+            for (unsigned char i=0;i<NumofSam;i++)
+            {
+                //   samPos12[bitand(bytes[(i-1)*4+3],31)+1]=bitand[bytes((i-1)*4+5),127)+bitshift(bitand(bytes((i-1)*4+4),31),7);
+                if(myData.at(i*4+5)==((myData.at(i*4+2)^myData.at(i*4+3)^myData.at(i*4+4))&0x7F))
+                {
+                    samPos12[myData.at(i*4+2)&0x1F]=(myData.at(i*4+4)&0x7F)+((myData.at(i*4+3)&0x1F)<<7);
+                    samAvail[myData.at(i*4+2)&0x1F]=1;
+                }
+                else
+                    qDebug()<<"error checksum 1";
+            }
+
+            qDebug()<<"all Pos12";
+            for (unsigned char i=0;i<=30;i++)
+            {
+                if(samAvail[i])
+                    qDebug()<<i<<":"<<samPos12[i];
+            }
+            qDebug()<<"all Pos12 Leg"<<samPos12[0]<<samPos12[1]<<samPos12[2]<<samPos12[3]<<samPos12[4]
+                   <<samPos12[5]<<samPos12[6]<<samPos12[7]<<samPos12[8]<<samPos12[9]<<samPos12[10]<<samPos12[11]<<samPos12[22];
+            qDebug()<<"Right hand"<<samPos12[12]<<samPos12[14]<<samPos12[16]<<samPos12[18];
+            qDebug ()<<"Left hand"<<samPos12[13]
+                    <<samPos12[15]<<samPos12[17]<<samPos12[19];
+            qDebug()<<"head"<<samPos12[23]<<samPos12[24];
+        }
         else if((quint8)myData.at(1)==0xec)
         {
             quint8 samPos8[24];
             quint8 samLoad8[24];
             quint8 samAvail[24]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+            qint8 deltaOffset8[24]={-31,-27,0,1,-27,29,-62,66,55,9,-60,23,0,0,0,0,0,0,0,0,0,0,0,0};
             QString a;
             quint8 NumofSam=(myData.size()-3)/4;
             qDebug()<<"all Pos12"<<NumofSam;
@@ -485,6 +553,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID0_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID0_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID0_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID0_P8->setText(a.setNum(0));
@@ -496,6 +565,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID1_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID1_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID1_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID1_P8->setText(a.setNum(0));
@@ -507,6 +577,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID2_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID2_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID2_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID2_P8->setText(a.setNum(0));
@@ -518,6 +589,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID3_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID3_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID3_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID3_P8->setText(a.setNum(0));
@@ -528,6 +600,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID4_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID4_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID4_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID4_P8->setText(a.setNum(0));
@@ -539,6 +612,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID5_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID5_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID5_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID5_P8->setText(a.setNum(0));
@@ -550,6 +624,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID6_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID6_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID6_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID6_P8->setText(a.setNum(0));
@@ -561,6 +636,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID7_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID7_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID7_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID7_P8->setText(a.setNum(0));
@@ -572,6 +648,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID8_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID8_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID8_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID8_P8->setText(a.setNum(0));
@@ -583,6 +660,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID9_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID9_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID9_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID9_P8->setText(a.setNum(0));
@@ -594,6 +672,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID10_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID10_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID10_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID10_P8->setText(a.setNum(0));
@@ -605,6 +684,7 @@ void Main_SAM_test::dataReceive(QByteArray myData)
             {
                 ui->label_A_ID11_P8->setText(a.setNum(samPos8[id]));
                 ui->label_A_ID11_L8->setText(a.setNum(samLoad8[id]));
+                ui->label_A_ID11_P8_2->setText(a.setNum(samPos8[id]-deltaOffset8[id]));
             }
             else {
                 ui->label_A_ID11_P8->setText(a.setNum(0));
@@ -1088,4 +1168,65 @@ void Main_SAM_test::on_pushButton_setPDquickAll_clicked()
 void Main_SAM_test::on_pushButton_getPDQuickAll_clicked()
 {
     getAllPDQuick();
+}
+
+void Main_SAM_test::on_pushButton_SetSAMs8_clicked()
+{
+
+}
+
+void Main_SAM_test::on_pushButton_SAMGetAllPos12_Full_clicked()
+{
+    getAllPos12Full();
+}
+
+void Main_SAM_test::on_pushButton_setPDquickAll_2_clicked()
+{
+
+}
+
+void Main_SAM_test::on_pushButton_setPDIquickAll_clicked()
+{
+    quint8 samP[12];
+    quint8 samD[12];
+    quint8 samI[12];
+    samP[0]=ui->spinBox_P_ID0_5->value();
+    samP[1]=ui->spinBox_P_ID1_5->value();
+    samP[2]=ui->spinBox_P_ID2_5->value();
+    samP[3]=ui->spinBox_P_ID3_5->value();
+    samP[4]=ui->spinBox_P_ID4_5->value();
+    samP[5]=ui->spinBox_P_ID5_5->value();
+    samP[6]=ui->spinBox_P_ID6_5->value();
+    samP[7]=ui->spinBox_P_ID7_5->value();
+    samP[8]=ui->spinBox_P_ID8_5->value();
+    samP[9]=ui->spinBox_P_ID9_5->value();
+    samP[10]=ui->spinBox_P_ID10_5->value();
+    samP[11]=ui->spinBox_P_ID11_5->value();
+
+    samD[0]=ui->spinBox_P_ID0_6->value();
+    samD[1]=ui->spinBox_P_ID1_6->value();
+    samD[2]=ui->spinBox_P_ID2_6->value();
+    samD[3]=ui->spinBox_P_ID3_6->value();
+    samD[4]=ui->spinBox_P_ID4_6->value();
+    samD[5]=ui->spinBox_P_ID5_6->value();
+    samD[6]=ui->spinBox_P_ID6_6->value();
+    samD[7]=ui->spinBox_P_ID7_6->value();
+    samD[8]=ui->spinBox_P_ID8_6->value();
+    samD[9]=ui->spinBox_P_ID9_6->value();
+    samD[10]=ui->spinBox_P_ID10_6->value();
+    samD[11]=ui->spinBox_P_ID11_6->value();
+
+    samI[0]=ui->spinBox_I_ID0_7->value();
+    samI[1]=ui->spinBox_I_ID1_7->value();
+    samI[2]=ui->spinBox_I_ID2_7->value();
+    samI[3]=ui->spinBox_I_ID3_7->value();
+    samI[4]=ui->spinBox_I_ID4_7->value();
+    samI[5]=ui->spinBox_I_ID5_7->value();
+    samI[6]=ui->spinBox_I_ID6_7->value();
+    samI[7]=ui->spinBox_I_ID7_7->value();
+    samI[8]=ui->spinBox_I_ID8_7->value();
+    samI[9]=ui->spinBox_I_ID9_7->value();
+    samI[10]=ui->spinBox_I_ID10_7->value();
+    samI[11]=ui->spinBox_I_ID11_7->value();
+    setAllPIDQuick(samP,samD,samI,12);
 }

@@ -2,6 +2,7 @@
 #include <QtSerialPort/QtSerialPort>
 #include "myserialport.h"
 QSerialPort *serial;
+
 mySerialPort::mySerialPort(QObject *parent) : QObject(parent)
 {
     initSerialPort();
